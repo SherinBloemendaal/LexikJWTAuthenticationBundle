@@ -2,6 +2,7 @@
 
 namespace Lexik\Bundle\JWTAuthenticationBundle\DependencyInjection;
 
+use ApiPlatform\Symfony\Bundle\ApiPlatformBundle;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
@@ -94,6 +95,7 @@ class Configuration implements ConfigurationInterface
                     ->end()
                 ->end()
                 ->arrayNode('api_platform')
+                    ->canBeEnabled()
                     ->info('API Platform compatibility: add check_path in OpenAPI documentation.')
                     ->children()
                         ->scalarNode('check_path')

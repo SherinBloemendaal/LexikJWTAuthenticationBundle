@@ -52,7 +52,7 @@ class LcobucciJWSProvider implements JWSProviderInterface
     public function __construct(KeyLoaderInterface $keyLoader, string $signatureAlgorithm, ?int $ttl, ?int $clockSkew, bool $allowNoExpiration = false, Clock $clock = null)
     {
         if (null === $clock) {
-            $clock = SystemClock::fromUTC();
+            $clock = new SystemClock(new \DateTimeZone('UTC'));
         }
 
         $this->keyLoader = $keyLoader;
@@ -75,7 +75,7 @@ class LcobucciJWSProvider implements JWSProviderInterface
         }
 
         foreach ($header as $k => $v) {
-            $jws->withHeader($k, $v);
+            $jws = $jws->withHeader($k, $v);
         }
 
         $now = time();
@@ -83,28 +83,28 @@ class LcobucciJWSProvider implements JWSProviderInterface
         $issuedAt = $payload['iat'] ?? $now;
         unset($payload['iat']);
 
-        $jws->issuedAt(!$issuedAt instanceof \DateTimeImmutable ? new \DateTimeImmutable("@{$issuedAt}") : $issuedAt);
+        $jws = $jws->issuedAt(!$issuedAt instanceof \DateTimeImmutable ? new \DateTimeImmutable("@{$issuedAt}") : $issuedAt);
 
         if (null !== $this->ttl || isset($payload['exp'])) {
             $exp = $payload['exp'] ?? $now + $this->ttl;
             unset($payload['exp']);
 
             if ($exp) {
-                $jws->expiresAt($exp instanceof \DateTimeImmutable ? $exp : (new \DateTimeImmutable("@$exp")));
+                $jws = $jws->expiresAt($exp instanceof \DateTimeImmutable ? $exp : (new \DateTimeImmutable("@$exp")));
             }
         }
 
         if (isset($payload['sub'])) {
-            $jws->relatedTo($payload['sub']);
+            $jws = $jws->relatedTo($payload['sub']);
             unset($payload['sub']);
         }
 
         if (interface_exists(RegisteredClaims::class)) {
-            $this->addStandardClaims($jws, $payload);
+            $jws = $this->addStandardClaims($jws, $payload);
         }
 
         foreach ($payload as $name => $value) {
-            $jws->withClaim($name, $value);
+            $jws = $jws->withClaim($name, $value);
         }
 
         $e = $token = null;
@@ -215,7 +215,7 @@ class LcobucciJWSProvider implements JWSProviderInterface
         return false;
     }
 
-    private function addStandardClaims(Builder $builder, array &$payload): void
+    private function addStandardClaims(Builder $builder, array &$payload): Builder
     {
         $mutatorMap = [
             RegisteredClaims::AUDIENCE => 'permittedFor',
@@ -233,11 +233,13 @@ class LcobucciJWSProvider implements JWSProviderInterface
             unset($payload[$claim]);
 
             if (\is_array($value)) {
-                \call_user_func_array([$builder, $mutator], $value);
+                $builder = \call_user_func_array([$builder, $mutator], $value);
                 continue;
             }
 
-            $builder->{$mutator}($value);
+            $builder = $builder->{$mutator}($value);
         }
+
+        return $builder;
     }
 }

@@ -67,6 +67,7 @@ class OpenApiFactory implements OpenApiFactoryInterface
                     ],
                 ])
                 ->withSummary('Creates a user token.')
+                ->withDescription('Creates a user token.')
                 ->withRequestBody(
                     (new RequestBody())
                     ->withDescription('The login data')
